@@ -15,33 +15,32 @@
         in
         builtins.foldl' op { } systems;
     in
-    eachSystem systems (system:
-      {
-        legacyPackages = nixpkgs.legacyPackages.${system}.callPackage ./default.nix { };
-        overlays.default = final: prev: {
-          inherit (final.callPackage ./. { }) mkNodeModules buildNpmPackage buildYarnPackage;
-        };
-        checks =
-          let
-            nixpkgs' = nixpkgs.legacyPackages.${system};
-          in
-          {
-            npm6 = import ./tests/buildNpmPackage {
-              pkgs = nixpkgs';
-              npm-buildpackage = self.legacyPackages.${system}.override {
-                nodejs = nixpkgs'.nodejs-14_x;
-              };
-            };
-            npm8 = import ./tests/buildNpmPackage {
-              pkgs = nixpkgs';
-              npm-buildpackage = self.legacyPackages.${system}.override {
-                nodejs = nixpkgs'.nodejs-18_x;
-              };
-            };
-            yarn = import ./tests/buildYarnPackage {
-              pkgs = nixpkgs.legacyPackages.${system};
-              npm-buildpackage = self.legacyPackages.${system};
+    {
+      legacyPackages = eachSystem systems (system: nixpkgs.legacyPackages.${system}.callPackage ./default.nix { });
+      overlays.default = final: prev: {
+        inherit (final.callPackage ./. { }) mkNodeModules buildNpmPackage buildYarnPackage;
+      };
+      checks = eachSystem systems (system:
+        let
+          nixpkgs' = nixpkgs.legacyPackages.${system};
+        in
+        {
+          npm6 = import ./tests/buildNpmPackage {
+            pkgs = nixpkgs';
+            npm-buildpackage = self.legacyPackages.${system}.override {
+              nodejs = nixpkgs'.nodejs-14_x;
             };
           };
-      });
+          npm8 = import ./tests/buildNpmPackage {
+            pkgs = nixpkgs';
+            npm-buildpackage = self.legacyPackages.${system}.override {
+              nodejs = nixpkgs'.nodejs-18_x;
+            };
+          };
+          yarn = import ./tests/buildYarnPackage {
+            pkgs = nixpkgs.legacyPackages.${system};
+            npm-buildpackage = self.legacyPackages.${system};
+          };
+        });
+    };
 }
